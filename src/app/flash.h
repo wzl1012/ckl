@@ -1,0 +1,21 @@
+#ifndef _FLASH_H
+#define _FLASH_H
+#include "gd32f10x.h"
+#define  FLS_START_ADR   0x80000000
+#define  FLS_PGSZ        2048
+#define BIN_EFL_START_ADDR    ((uint32_t)(FLS_START_ADR+12*FLS_PGSZ))//((uint32_t)(FLS_START_ADR+36*FLS_PGSZ))
+#define CKSZ   2048
+#define BIN_CRTY_MDFLSADR      BIN_EFL_START_ADDR+CKSZ-1
+//#define BIN_EFL_END_ADDR      (0x0800D3bfU)
+//#define  EFLWD_NUM  (( BIN_EFL_END_ADDR  -BIN_EFL_START_ADDR) >> 2)
+#define  FLSRDBSZ  3072
+#define  KEY_CRTY_FLSADR    0x2000
+#define  KEY_CRTY_EDFLSADR  KEY_CRTY_FLSADR+CKSZ-1
+#define  CRTYPPSZ  32
+//#define  FLSCKBSZ  10
+//#define  FLSSTCKSADR    (0x0800d030U)
+//#define  KEY_STKOFFSET    FLSSTCKSADR-BIN_EFL_START_ADDR
+//#define  KEY_STCKSADR    (KEY_CRTY_FLSADR+KEY_STKOFFSET)
+
+ #endif 
+ 
