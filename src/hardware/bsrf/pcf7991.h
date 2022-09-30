@@ -1,6 +1,10 @@
 #ifndef _PCF7991_H_
 #define _PCF7991_H_
 #include "gd32f10x.h"
+
+#define PCF7991_SCLK_OUT    GPIO_PIN_12
+#define PCF7991DIN_OUT      GPIO_PIN_2
+#define PCF7991DOUT_IN      GPIO_PIN_8
 #define pcf7991_sclk_high()			gpio_bit_set(GPIOC,  PCF7991_SCLK_OUT)
 #define pcf7991_sclk_low()			gpio_bit_reset(GPIOC,  PCF7991_SCLK_OUT)
 
@@ -41,23 +45,12 @@ and restored by a set of control bits accessible via the SET_CONFIG_PAGE command
 #define pcf7991_active_driver()				pcf7991_set_page(0x01, 0x02)
 #define pcf7991_inactive_driver()			pcf7991_set_page(0x01, 0x03)
 #define DECODE_MAX_T						(3000 * 2)
-typedef enum
-{
-	e_modu_mc = 0x10,
-	e_modu_bp
-} modulation_t;
+
 typedef enum
 {
 	e_dir_msbit = 0x20,
 	e_dir_lsbit
 } byte_dir_t;
-typedef enum
-{
-	page0=0,
-	page1,
-	page2,
-	page3,
-} pg_t;
 void pcf7991_read_tag(void);
 void pcf7991_write_tag_n(uint8_t n);
 void pcf7991_write_tag(void);

@@ -1,7 +1,8 @@
 #ifndef _TMS3705_H_
 #define _TMS3705_H_
-#include "gpio.h"
-/* TXCT : Control input from the microconroller(default value is high) */
+#include "headfile.h"
+#define  TMS3705IN  GPIO_PIN_0
+#define  TMS3705OCT GPIO_PIN_1
 #define tms3705_driver_off()			gpio_bit_set(GPIOC,  TMS3705OCT)
 #define tms3705_driver_on()				gpio_bit_reset(GPIOC,  TMS3705OCT)
 

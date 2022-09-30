@@ -6,7 +6,7 @@
 void void_printf(void*f,...);
 void USART0_Config(void);
 int fputc(int ch, FILE *f);
-
+void __no_operation(void);
 #if DEBUG
 //#define  debug_printf   printf(const char *fmt, ...)
 #define  debug_printf   printf

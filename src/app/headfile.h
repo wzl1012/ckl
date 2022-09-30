@@ -23,6 +23,9 @@
 #include "RFraterd.h"
 #include "IIC.h"
 #include "oled1306.h"
-
+#include "icwr.h"
+#include "pcf7991.h"
+#include "tms3705.h"
+#include "exc46.h"
 #endif
 

@@ -24,7 +24,10 @@ void USART0_Config(void)
 void void_printf(void*f,...)
 {
 }
-
+void __no_operation(void)
+{
+	;
+}
  /* ??  :???c???printf?USART1*/ 
 int fputc(int ch, FILE *f)
 {
