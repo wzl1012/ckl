@@ -15,6 +15,7 @@ extern volatile uint32_t t3;
 #define timer1_stop()					    timer_disable(TIMER2)
 #define timer1_start_8()				timer_start(TIMER2,54,TIMER_PSC_RELOAD_NOW) //125us
 #define timer1_start_64()				timer_start(TIMER2,432,TIMER_PSC_RELOAD_NOW)//1000us
+#define timer1_start_1080()				timer_start(TIMER2,10799,TIMER_PSC_RELOAD_NOW)//1000us
 #define timer1_clear_ov()				timer_flag_clear(TIMER2,TIMER_FLAG_UP) 
 #define timer1_ov_flag          timer_flag_get(TIMER2, TIMER_FLAG_UP)
 #define TCNT1                   TIMER_CAR(TIMER2)

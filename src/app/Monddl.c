@@ -83,7 +83,7 @@ static bool bdcmp_update(void)
 			   return TRUE;
 		 }
 }
-
+static Rom_parameter_struct Rom_partmp={0};
 static bool Cmd_send(uint8_t cmdcode)
 {
 	uint8_t  i=0;
@@ -93,8 +93,8 @@ static bool Cmd_send(uint8_t cmdcode)
 	//delay_us(5);
   timer1_stop();
 	timer1_clear_ov();
-	TCNT1 = 4000;				// ptime is 1ms
-	timer1_start_8();
+	TCNT1 = 40000;				// ptime is 1ms
+	timer1_start_8();	
 	while(!gpio_input_bit_get(GPIOA, MSCL)){
 		if(timer1_ov_flag == 1){
 			  timer1_stop();
@@ -109,7 +109,7 @@ static bool Cmd_send(uint8_t cmdcode)
 		}
 	 timer1_stop();
 	timer1_clear_ov();
-	TCNT1 = 4000;				// ptime is 100
+	TCNT1 = 40000;				// ptime is 100
 	timer1_start_8();	
 	for(i=1;i<9;i++){	
 		while(gpio_input_bit_get(GPIOA, MSCL)){
@@ -121,6 +121,9 @@ static bool Cmd_send(uint8_t cmdcode)
 		}
 		if(i==8)break;
 		delay_us(1);
+		if(Rom_partmp.devtype==PCF7922){
+			delay_us(16);
+		}
 	if((cmdcode>>i)&0x01){
 			//delay_us(1);
 			gpio_bit_set(GPIOA, MSDA);
@@ -130,6 +133,9 @@ static bool Cmd_send(uint8_t cmdcode)
 		}
 		//i++;
 		//cmdcode=cmdcode>>i;
+		if(Rom_partmp.devtype==PCF7922){
+			delay_us(6);
+		}
 			 TCNT_V=0;
 	     timer1_clear_ov();
 	     while(!gpio_input_bit_get(GPIOA, MSCL)&&(i<8)){
@@ -137,9 +143,11 @@ static bool Cmd_send(uint8_t cmdcode)
 			  timer1_stop();
 	      timer1_clear_ov();
 			  return FALSE;
-		}
+		}				
 	   }
-	//delay_us(2);
+		if(Rom_partmp.devtype==PCF7922){
+			delay_us(8);
+		}
 	//microseconds_delay(2);	
 }
 	//while(gpio_input_bit_get(GPIOA, MSCL));
@@ -175,16 +183,78 @@ static bool Cmd_send(uint8_t cmdcode)
 			return FALSE;
 		}
 }*/
-static Rom_parameter_struct Rom_partmp={0};
 #if defined(MONI_INTMODE_PU)
+static uint8_t Moni_int_PUmod(DEV_FTCODE fcode)
+{
+	  uint8_t  rspdbuff=0;
+    gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
+		gpio_init(GPIOA, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, MSCL);
+	  gpio_bit_reset(GPIOA, MSDA);
+	  gpio_bit_set(GPIOC, POCTRL);
+    delay_us(3000);
+	  gpio_bit_reset(GPIOC, POCTRL);
+	  timer1_stop();
+	timer1_clear_ov();
+	TCNT1 =50000;				// ptime is 2ms
+	timer1_start_64();
+	  while(!gpio_input_bit_get(GPIOA, MSCL)){
+			// debug_printf("\r\nt1cntv=%04x\r\n",TCNT_V);
+				if(timer1_ov_flag == 1){
+			  timer1_stop();
+	      timer1_clear_ov();
+				return FALSE;
+		  }
+		}
+		if(fcode==GC_DEV){
+	  delay_us(120);
+		//if(fcode==NXP_DEV){
+		//  delay_us(500);		
+		//}
+	    gpio_bit_set(GPIOA, MSDA);
+	  }		
+		timer1_stop();
+	  timer1_clear_ov();
+	  //TCNT1 =60000;				// ptime is 2ms
+	  timer1_start_64();
+	  while(gpio_input_bit_get(GPIOA, MSCL)){
+			//debug_printf("\r\nt1cntv=%04x\r\n",TCNT_V);
+				if(timer1_ov_flag == 1){
+			  timer1_stop();
+	      timer1_clear_ov();
+			 return FALSE;
+		  }
+		}
+		if(fcode==NXP_DEV){
+			gpio_bit_set(GPIOA, MSDA);
+		   delay_us(200);
+		}
+		if(fcode==GC_DEV){
+		gpio_bit_reset(GPIOA, MSDA);
+		}
+		 timer1_stop();
+	  rspdata_read(DEFAULTCMD,&rspdbuff,8);
+	  if(rspdbuff==entmonit_mode_rsp)
+		{
+			//Cmd_send(c_trace);
+			delay_us(200);
+			return TRUE;
+		}else{
+      return FALSE;
+    }			
+}
 static uint8_t Moni_int_modset_PU(DEV_FTCODE fcode)
 {
 	  uint8_t  rspdbuff=0,t=2;
 	  uint8_t  result=TRUE;
 while(t--){
     gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
-	if(fcode==NXP_DEV&&Rom_partmp.devtype==PCF7952)
-		 gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, MSCL);
+	if(fcode==NXP_DEV/*&&&Rom_partmp.devtype==PCF7952*/){
+		 if(Rom_partmp.devtype==PCF7952||Rom_partmp.devtype==PCF7953||Rom_partmp.devtype==PCF7941)
+		   gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, MSCL);
+		 if(Rom_partmp.devtype==PCF7922){
+			 gpio_init(GPIOA,GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, MSCL);
+		 }
+	}
 	else{
 	  gpio_init(GPIOA,GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSCL);
 	  gpio_bit_reset(GPIOA, MSCL);
@@ -192,13 +262,13 @@ while(t--){
 	  gpio_bit_reset(GPIOA, MSDA);
 	  gpio_bit_set(GPIOC, POCTRL);
 	  result=TRUE;
-	 if(fcode==NXP_DEV&&Rom_partmp.devtype==PCF7952)
+	 if(fcode==NXP_DEV/*&&Rom_partmp.devtype==PCF7952*/)
 		 delay_us(270000);
 		 else
     delay_us(3000);
  	  //gpio_bit_reset(GPIOA, MSDA);
 	  gpio_bit_reset(GPIOC, POCTRL);
-	 if(Rom_partmp.devtype!=PCF7952)
+	 if(fcode==GC_DEV/*Rom_partmp.devtype!=PCF7952*/)
 	  gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, MSCL);
 	 // microseconds_delay(300);
 	  timer1_stop();
@@ -215,12 +285,12 @@ while(t--){
 		  }
 		}
 		if(result==FALSE)continue;
-		if(Rom_partmp.devtype!=PCF7952){
-		if(fcode==GC_DEV)
+		//if(Rom_partmp.devtype!=PCF7952){
+		if(fcode==GC_DEV){
 	  delay_us(120);
-		if(fcode==NXP_DEV){
-		  delay_us(500);		
-		}
+		//if(fcode==NXP_DEV){
+		//  delay_us(500);		
+		//}
 	    gpio_bit_set(GPIOA, MSDA);
 	  }		
 		//debug_printf("\r\nt1cntv=%04x\r\n",TCNT_V);
@@ -238,17 +308,20 @@ while(t--){
 		  }
 		}
 		if(result==FALSE)continue;
-		if(fcode==NXP_DEV&&Rom_partmp.devtype==PCF7952){
+		if(fcode==NXP_DEV){
 			gpio_bit_set(GPIOA, MSDA);
 		   delay_us(200);
 		}
+		if(fcode==GC_DEV){
 		gpio_bit_reset(GPIOA, MSDA);
+		}
 		 timer1_stop();
 	  rspdata_read(DEFAULTCMD,&rspdbuff,8);
 	  if(rspdbuff==entmonit_mode_rsp)
 		{
 			//Cmd_send(c_trace);
 			delay_us(200);
+			
 			result=TRUE;
 			break;
 		}else{
@@ -292,8 +365,8 @@ bool rspdata_read(C_CODE_ENUM cmd,uint8_t* dbuff,uint8_t bits)
 	gpio_bit_reset(GPIOA, MSDA);
 	 // timer1_stop();
 	timer1_clear_ov();
-	TCNT1 =40000;				// ptime is 1ms
-	timer1_start_64();
+	TCNT1 =10000;				// ptime is 1ms
+	timer1_start_1080();
 	while(!gpio_input_bit_get(GPIOA, MSCL)){
 				if(timer1_ov_flag == 1){
 			  timer1_stop();
@@ -339,8 +412,8 @@ bool rspdata_read(C_CODE_ENUM cmd,uint8_t* dbuff,uint8_t bits)
 		  }
 		}
 	timer1_stop();
-	gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
 	gpio_bit_set(GPIOA, MSDA);
+	gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
 	//debug_printf("\r\nrspdata=%2x\r\n",tdata);
 	//microseconds_delay(8);
 	//delay_us(5);
@@ -441,7 +514,7 @@ static bool EROM_32Write(uint8_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t w
 	 if(Cmd_send(pgaddr)!=TRUE)
 		return FALSE;
 	}
-	if((cmd==g_wr_eeprom||cmd==c_wr_eeprom)&&pgaddr==IDEEEPGADR){
+	if((cmd==g_wr_eeprom||cmd==c_wr_eeprom)&&pgaddr==(*(Rom_partmp.EEProbuff+511)>>2)){
 		//uint32_t tmpdata1=0;
 		//tmpdata1=*(uint32_t*)wbuff;
 		//tmpdata1=((*(uint32_t*)KBSNFLSADR)<<8)+tmpdata1;
@@ -460,16 +533,49 @@ static bool EROM_32Write(uint8_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t w
 		  tmpdata=*wbuff;
 		}
 		if(Cmd_send(tmpdata)!=TRUE)
-		return FALSE;
+		 return FALSE;
 	}
   	wbuff++;	
 	}
- rspdata_read(cmd,&rspd,8);
+  if(!rspdata_read(cmd,&rspd,8))
+		 return FALSE;
 	if(cmd!=g_b0pglst&&(rspd&RRDRSP)){
 		return FALSE;
 	}
 		return TRUE;		
 }
+static bool rdwddis(void)
+{
+		timer1_stop();
+	timer1_clear_ov();
+	TCNT1 = 40000;				// ptime is 50
+	timer1_start_8();			
+		while(!gpio_input_bit_get(GPIOA, MSCL)){
+				if(timer1_ov_flag == 1){
+			  timer1_stop();
+	      timer1_clear_ov();
+			  return FALSE;
+		  }
+		}
+		while(gpio_input_bit_get(GPIOA, MSCL)){
+				if(timer1_ov_flag == 1){
+			  timer1_stop();
+	      timer1_clear_ov();
+			  return FALSE;
+		  }
+		}
+		return TRUE;
+}
+/*static bool setreg(C_CODE_ENUM cmd ,uint8_t regadr,uint8_t data)
+{
+	 if(Cmd_send(cmd)!=TRUE)
+		   return FALSE;
+	 if(Cmd_send(regadr)!=TRUE)
+		   return FALSE;
+	 if(Cmd_send(data)!=TRUE)
+		   return FALSE;
+	 return TRUE;
+}*/
 static bool nxpopr(C_CODE_ENUM cmd)
 {
 	  uint8_t  rspd=0,i;
@@ -482,9 +588,18 @@ static bool nxpopr(C_CODE_ENUM cmd)
 	     C_BYTE[0]=C7;
        C_BYTE[1]=C8;
        C_BYTE[2]=C10;}
+		if(cmd==c_wr_erom64){
+	     C_BYTE[0]=C7;
+       C_BYTE[1]=C8;
+       C_BYTE[2]=C12;}
      if(cmd==c_ee_dump){		
 			if(Cmd_send(c_trace)!=TRUE)
 		return FALSE;
+			 if(Rom_partmp.devtype==PCF7922){
+   if(rdwddis()!=TRUE){
+		  return FALSE;
+   }
+ }
     rspdata_read(DEFAULTCMD,&rspd,8);
 		 if(rspd!=0)
 	   return FALSE;
@@ -519,7 +634,7 @@ bool ROM_PRO(uint16_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t wpsize,uint1
 		}
 #endif
 	// }else{
-if(cmd==c_wr_erom){
+if(cmd==c_wr_erom||cmd==c_wr_erom64){
 #if defined(MONI_INTMODE_PU)
 		 //debug_printf("\r\nEnter PUM!\r\n");
 				if(Moni_int_modset_PU(NXP_DEV)!=TRUE){
@@ -529,14 +644,23 @@ if(cmd==c_wr_erom){
 #endif		
  if(Cmd_send(c_trace)!=TRUE)
 	  return FALSE;
-  rspdata_read(cmd,&rspd,8);
+ if(Rom_partmp.devtype==PCF7922){
+   if(rdwddis()!=TRUE){
+		  return FALSE;
+   }
+ }
+  if(rspdata_read(cmd,&rspd,8)!=TRUE)
+		  return FALSE;
  if(rspd!=0)
 	 return FALSE;
- rspdata_read(cmd,&rspd,8);
+   if(rspdata_read(cmd,&rspd,8)!=TRUE)
+		  return FALSE;
   if(rspd!=0)
 	 return FALSE;
   if(nxpopr(cmd)!=TRUE)
-		  return FALSE;    	
+		  return FALSE;
+  //if(Rom_partmp.devtype==PCF7922&&!setreg(c_setreg ,0x27,0x04))
+       //	return FALSE;	
 }
 if(cmd==c_wr_eeprom){
   bcnt++;
@@ -628,8 +752,6 @@ uint8_t ROM_ER(NXP_DEVTPE_ENUM devtype,C_CODE_ENUM cmd)
 #endif
 	// }else{
 #if defined(MONI_INTMODE_PU)
-		 debug_printf("\r\nEnter PUM!\r\n");
-
 				if((cmd==c_er_erom&&Moni_int_modset_PU(NXP_DEV)!=TRUE)||
 					(cmd==g_er_erom&&Moni_int_modset_PU(GC_DEV)!=TRUE)){
 			debug_printf("\r\nEnter downld mode fail!\r\n");	
@@ -640,9 +762,10 @@ uint8_t ROM_ER(NXP_DEVTPE_ENUM devtype,C_CODE_ENUM cmd)
 	// debug_printf("\r\nEnter downld mode\r\n");
 	if((cmd==g_er_erom&&Cmd_send(cmd)!=TRUE)||(cmd==c_er_erom&&Cmd_send(cmd)!=TRUE))
 		return FALSE;
-	if(devtype==0xA1||devtype==0xA3){
+	if(devtype==0xA1||devtype==0xA5||devtype==0xA3){
     //if(cmd==g_er_erom)	
-	  rspdata_read(cmd,&rspd,8);
+	    if(rspdata_read(cmd,&rspd,8)!=TRUE)
+		  return FALSE;
 		//if(cmd==c_er_erom)
 		//nxp_rspdata_read(cmd,&rspd,8);	
 	if(rspd!=ERCRSP){
@@ -650,14 +773,15 @@ uint8_t ROM_ER(NXP_DEVTPE_ENUM devtype,C_CODE_ENUM cmd)
 	  }
  }
 	//Cmd_send(c_trace);
-	if(devtype==0xA1||devtype==0xA3){
+	if(devtype==0xA1||devtype==0xA5||devtype==0xA3){
 	delay_us(80);
 	for(i=0;i<16;i++){
 	   if(Cmd_send(ER_BYTE[i])!=TRUE)
 		  return FALSE;
    }
  }
-	 rspdata_read(cmd,&rspd,8);
+	   if(rspdata_read(cmd,&rspd,8)!=TRUE)
+		  return FALSE;
 		if(rspd&RRDRSP){
 		return FALSE;
 	}
@@ -1172,6 +1296,25 @@ uint8_t fxorder(uint8_t tmd,uint8_t bits)
 	 }
    return fxv;
 }
+bool static EROMB_RD(C_CODE_ENUM cmd,uint8_t *wbuff)
+{
+  uint16_t adr[3]={0x00,0x04,0x09};	
+	uint8_t i=0,rspd=0;
+	for(i=0;i<3;i++)
+	{
+		if(!Cmd_send(cmd))
+			 return FALSE;
+		if(!Cmd_send((adr[i])&0xFF))
+			 return FALSE;
+		if(!Cmd_send((adr[i]>>8)&0xFF))
+			 return FALSE;
+		if(!rspdata_read(cmd,&rspd,8))
+			 return FALSE;
+		if(rspd!=fxorder(*(wbuff+adr[i]),8))
+			return FALSE;
+	}
+ return TRUE;	
+}
 bool GCEEROM_RD(C_CODE_ENUM cmd0,C_CODE_ENUM cmd,uint8_t *wbuff,uint16_t bytes,uint16_t rlbytes)
 {
 	uint8_t  rspd=0,i;
@@ -1203,6 +1346,10 @@ if(cmd0==g_wr_eeprom){
 		return FALSE;
 	}
 	}
+	if(Rom_partmp.devtype==PCF7922&&cmd==c_er_dump){
+		if(!EROMB_RD(c_erm_rdb,wbuff))
+			  return FALSE;
+	}else{
 		if(Cmd_send(cmd)!=TRUE)
 		return FALSE;
 		while(bytes--){
@@ -1224,14 +1371,15 @@ if(cmd0==g_wr_eeprom){
 				(bytes==(tmpEERsz-tmpsz/2)&&rspd!=0xFF)){
 					 return FALSE;
 			}
-		 }else if(cmd0==c_wr_erom){
+		 }else if(cmd0==c_wr_erom){					 
         if(((bytes==(tmpEERsz-tmpsz))&&rspd!=fxorder(*(wbuff+tmpsz-1),8))||
 				(bytes==(tmpEERsz-tmpsz/2)&&rspd!=fxorder(*(wbuff+tmpsz/2-1),8))||
 			  (bytes==(tmpEERsz-1)&&rspd!=fxorder(*(wbuff),8))){
 					 return FALSE;
 			  } 
 		 }			 
-	}		
+	}
+ }		
 	  return TRUE;
 }
 bool GCEEROM_RD1(C_CODE_ENUM cmd,uint16_t bytes)
@@ -1436,7 +1584,6 @@ fmc_state_enum GD32FMC_OB_Toggle(uint8_t ob_spc)
 	fmc_lock();			
 	return res;
 }
-
 void swd_cls(void)
 {
 	//rcu_periph_clock_enable(RCU_GPIOA);
@@ -1487,6 +1634,13 @@ bool Rom_parameter_cofg(DEV_FTCODE fcode,NXP_DEVTPE_ENUM devtype,uint32_t ERdlfl
 		    }				
          Rom_partmp.EROMsize=PCF7952_E_ROM_SZ;
          Rom_partmp.EEROMsize=PCF7952_EE_ROM_SZ;	
+	     }
+		  break;
+			case(PCF7922):{
+		       Rom_partmp.Epgsize=GEROM_PGSIZE;
+           Rom_partmp.EEpgsize=EEROM_PGSIZE;			
+           Rom_partmp.EROMsize=PCF7945_E_ROM_SZ;
+           Rom_partmp.EEROMsize=PCF7952_EE_ROM_SZ;	
 	     }
 		  break;
 		case(OTHERDEV):{
@@ -1549,6 +1703,39 @@ debug_printf("\r\nstics=%04x\r\n",tmp);
  }*/
 		return TRUE;
 }
+/*static bool clk_rd(void)
+{
+	uint8_t  i=0,j=0;
+  timer1_stop();
+	timer1_clear_ov();
+	TCNT1 = 40000;				// ptime is 1ms
+	timer1_start_8();
+	for(j=0;j<3;j++){
+	for(i=0;i<8;i++){
+	  while(!gpio_input_bit_get(GPIOA, MSCL)){
+		   if(timer1_ov_flag == 1){
+			  timer1_stop();
+	      timer1_clear_ov();
+			  return FALSE;
+		    }			
+	    }
+    delay_us(15);		
+	  while(gpio_input_bit_get(GPIOA, MSCL)){
+		   if(timer1_ov_flag == 1){
+			  timer1_stop();
+	      timer1_clear_ov();
+			  return FALSE;
+		    }			
+	    }
+    delay_us(15);			
+	  }
+	}
+	if(j==3){
+		 gpio_bit_reset(GPIOA, MSCL);
+		 gpio_init(GPIOA,GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSCL);
+	}
+	return TRUE;
+}*/
 static  uint32_t randnum(void)
 {
 	 uint32_t stics=0;
@@ -1626,6 +1813,19 @@ bool Rom_Prgram_OP(DEV_PRGCMD cmd)
 						     return FALSE;
 						}
 					}else if(Rom_partmp.fctcode==NXP_DEV){
+						  if(Rom_partmp.devtype==PCF7922){
+						   if(Moni_int_PUmod(Rom_partmp.fctcode)!=TRUE){
+								    return FALSE;
+								 }else{
+									 //if(Cmd_send(0x00)!=TRUE)
+									  gpio_bit_reset(GPIOA, MSDA);
+										//if(clk_rd( )!=TRUE)
+											//return FALSE;
+									    delay_us(50000);
+										//else
+											//return FALSE;
+								 }
+							 }
 							if(ROM_ER(Rom_partmp.devtype,c_er_erom)!=TRUE){
 								debug_printf("\r\nnxErase fail!\r\n");
 							  return FALSE;
@@ -1643,7 +1843,8 @@ bool Rom_Prgram_OP(DEV_PRGCMD cmd)
 				 crtyfls=(uint8_t*)BIN_EFL_START_ADDR;
 				 crtyflsed=(uint8_t*)(BIN_CRTY_MDFLSADR);
 				 }
-	  if((Rom_partmp.fctcode==NXP_DEV&&ROM_PRO(EPRADR,c_wr_erom,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize)!=TRUE)||
+	  if((Rom_partmp.fctcode==NXP_DEV&&((Rom_partmp.devtype==PCF7922&&ROM_PRO(EPRADR,c_wr_erom64,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize)!=TRUE)
+			||(Rom_partmp.devtype!=PCF7922&&ROM_PRO(EPRADR,c_wr_erom,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize)!=TRUE)))||
 			(Rom_partmp.fctcode==GC_DEV&&GCROM_PRO(EPRADR,g_wr_erom,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize)!=TRUE)){
 			debug_printf("\r\nEROM burn fail!\r\n");
 				//free(Rom_partmp.EProbuff);
@@ -1936,7 +2137,7 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 }
 bool kfw_pkgszchk(NXP_DEVTPE_ENUM devtype,uint16_t fmpkgsz)
 {
-	 if(devtype==PCF7945||devtype==PCF7953){
+	 if(devtype==PCF7945||devtype==PCF7953||devtype==PCF7922){
 		 if(fmpkgsz!=0x2414){
 			 return FALSE;
 		 }

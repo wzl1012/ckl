@@ -24,6 +24,7 @@
 #define   C9   0x99
 #define   C10   0x66
 #define   C11   0x55
+#define   C12   0xB5
 #define   ERCRSP  0x11  
 #define   RRDRSP  0x02
 #define   TEELL    0
@@ -44,11 +45,12 @@
 typedef enum{
 	DEFAULTCMD=0x00,
 	c_trace=0x02,
-	//c_setpc=0x05,  //0x05
+	c_setreg=0x04,  //0x05
 	c_reset=0x06,	
 	c_er_erom=0x08,  //0x08
 	c_wr_erom=0x09,
 	c_wr_eeprom=0x0A,
+	c_erm_rdb=0x1B,
 	c_ee_dump=0x0E,
 	c_er_dump=0x0F,
 	c__prog_config=0x14,

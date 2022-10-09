@@ -17,6 +17,7 @@ typedef enum{
 	PCF7952=0xA2,
 	PCF7953=0xA3,
 	PCF7941=0xA4,
+	PCF7922=0xA5,
 	OTHERDEV=0xB0
 }NXP_DEVTPE_ENUM;
 bool  Erase(void);
