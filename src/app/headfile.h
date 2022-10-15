@@ -13,6 +13,7 @@
 #include "semphr.h"
 #include "gpio.h"
 #include "debug.h"
+#include "config.h"
 #include "cfg-parameter.h"
 #include "flash.h"
 #include "API.h"

@@ -1,8 +1,11 @@
 #include "headfile.h"
 
-//////////////////////////////////////////////////////////////////////////////////	 
+#if SLPTSK	 
 extern SemaphoreHandle_t KeyPSPhore;
+#endif
+#if BTRTSK
 extern  TaskHandle_t BTR_T_Task_Handler;
+#endif
 #define USART_REC_LEN  			224  	//定义最大接收字节数 200  	
 #pragma import(__use_no_semihosting)             
 //标准库需要的支持函数                 
@@ -27,54 +30,23 @@ void u2_sendhex(uint8_t *f,uint8_t bytes)
 	}		
 } 
  
-  	
+#if BTRTSK 	
 uint8_t USART_RX_BUF[USART_REC_LEN];     
 uint16_t USART_RX_STA=0;        
 //extern TaskHandle_t BTR_T_Task_Handler;
-void USART1_IRQHandler(void)                	//串口2中断服务程序
+void USART1_IRQHandler(void)                	
 {
 	static uint16_t i=0;
 //  uint8_t tmpd=0;
 	BaseType_t xHigherPriorityTaskWoken1,xHigherPriorityTaskWoken2;
- //static enum {
-		//chkpkg_head,
-	//	bgin_recv,
-	//}state;
 	uint32_t  retur;
 	  retur=taskENTER_CRITICAL_FROM_ISR();	
-	if(usart_interrupt_flag_get(USART1, USART_INT_FLAG_RBNE) != RESET)  //接收中断(接收到的数据必须是0x0d 0x0a结尾)
+	if(usart_interrupt_flag_get(USART1, USART_INT_FLAG_RBNE) != RESET)
 		{
 		    usart_interrupt_flag_clear(USART1,USART_INT_FLAG_RBNE);
-		   // Res[i]=usart_data_receive(USART2);	//读取接收到的数据
 			//debug_printf("\r\nuartd");
 			 if((USART_RX_STA&0x8000)==0){
-				// switch(state){
-					 /*case chkpkg_head:{
-						 tmp[i]=usart_data_receive(USART1);	
-						 	 if(i==0&&tmp[i]==0xfd){
-								   i+=1;
-				         }
-               else if(i==1&&tmp[i]==0xdf){
-								    i=0;
-								 		tmp[0]=0;
-								    tmp[1]=0;
-                  	state=bgin_recv;							 
-					    }else{
-								  i=0;
-								tmp[0]=0;
-								tmp[1]=0;
-							}
-						}
-					   break;*/
-				 // case bgin_recv:{
 						       USART_RX_BUF[USART_RX_STA&0X1FFF]=(uint8_t)usart_data_receive(USART1);
-						 	/* if((USART_RX_STA&0X3FFF)==0&&USART_RX_BUF[USART_RX_STA&0X3FFF]<9){
-								    USART_RX_BUF[0]=0;
-                    USART_RX_BUF[1]=0;
-                    USART_RX_STA=0;
-                    state=chkpkg_head;
-                    break;
-				         }*/
 								
                if(USART_RX_STA&0x4000){
 								 		if(((USART_RX_STA&0X1FFF)==i+1)&&USART_RX_BUF[USART_RX_STA&0X1FFF]==0x55){
@@ -118,5 +90,5 @@ void USART1_IRQHandler(void)                	//串口2中断服务程序
 	}
 			//taskEXIT_CRITICAL_FROM_ISR( retur );
 }		
-
+#endif
 

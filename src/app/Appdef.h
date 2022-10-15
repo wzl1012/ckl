@@ -41,6 +41,7 @@
 #define   ID1  0x08
 #define   ID2  0x02
 #define   ID3  0x38
+#define   ID4  0x48
 #define   IDEEEPGADR  (ID3>>2)
 typedef enum{
 	DEFAULTCMD=0x00,

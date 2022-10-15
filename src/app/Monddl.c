@@ -33,7 +33,6 @@ void fmc_erase_pages(uint32_t flsadr,uint8_t pgsz)
 	  uint32_t* rtrd=NULL; 
     ptrd = (uint32_t *)flswadr;
     rtrd =(uint32_t *)rdadr;
-    /* check flash whether has been programmed */
     for(i = 0; i <wsz; i++){
         if((*ptrd) != (*rtrd)){
 					  return FALSE;
@@ -2070,10 +2069,14 @@ static bool GCEEROMID_RD(C_CODE_ENUM cmd,uint16_t bytes,uint8_t* p)
 					     return FALSE;
 						 //if(bytes==(tmpEERsz-516))
 							  // *p=rspd;
-					   }
-            if(tmpEERsz==PCF7952_EE_ROM_SZ){
-							  if((bytes==(tmpEERsz-511)&&rspd!=ID3))
+					   }else if(tmpEERsz==PCF7952_EE_ROM_SZ){
+							  if(Rom_partmp.devtype==PCF7922){
+									if((bytes==(tmpEERsz-511)&&rspd!=ID4))
 					          return FALSE;
+								}else{
+							   if((bytes==(tmpEERsz-511)&&rspd!=ID3))
+					          return FALSE;
+							 }
 						    //if(bytes==(tmpEERsz-507))
 							     //*p=rspd;
 						 }
@@ -2088,7 +2091,7 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 	              uint8_t  result=0;
     if(devtype==PCF7945||devtype==PCF7953)
          eeromsz=PCF7945_EE_ROM_SZ;			
-    else if(devtype==PCF7952){
+    else if(devtype==PCF7952||devtype==PCF7922){
          eeromsz=PCF7952_EE_ROM_SZ;	
 	     }
 		       if(devcd==GC_DEV){
@@ -2115,6 +2118,8 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 								}
 						 }
 					 if(devcd==NXP_DEV){
+						 if(devtype==PCF7922)
+							   Rom_partmp.devtype=PCF7922;
 		  			      if((result=ROM_ER(devtype,c_er_erom))==FALSE){
 								debug_printf("\r\nbcErase fail!\r\n");
 							  return FALSE;
