@@ -85,7 +85,9 @@ void USART1_IRQHandler(void)
 		//for(i=0;i<(USART_RX_STA&0X3FFF);i++)
 		//debug_printf("\r\nrev[%d]=%x",i,USART_RX_BUF[i]);
 		vTaskNotifyGiveFromISR(BTR_T_Task_Handler,&xHigherPriorityTaskWoken1);
+#if SLPTSK 
 		xSemaphoreGiveFromISR(KeyPSPhore,&xHigherPriorityTaskWoken2);
+#endif
 		portYIELD_FROM_ISR((xHigherPriorityTaskWoken1|xHigherPriorityTaskWoken2));
 	}
 			//taskEXIT_CRITICAL_FROM_ISR( retur );
