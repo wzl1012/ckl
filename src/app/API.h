@@ -1,10 +1,10 @@
 #ifndef  _API_H
 #define  _API_H
 #include "gd32f10x.h"
-#define BIN_EFLSBR_START_ADDR    ((uint32_t)0x0800D400U)
-#define BIN_EFLSBR_END_ADDR      ((uint32_t)0x0800F3FFU)
-#define BIN_EEFLSBR_START_ADDR    ((uint32_t)0x0800F800U)
-#define BIN_EEFLSBR_END_ADDR      ((uint32_t)0x0800FBFFU)
+//#define BIN_EFLSBR_START_ADDR    ((uint32_t)0x0800D400U)
+//#define BIN_EFLSBR_END_ADDR      ((uint32_t)0x0800F3FFU)
+//#define BIN_EEFLSBR_START_ADDR    ((uint32_t)0x0800F800U)
+//#define BIN_EEFLSBR_END_ADDR      ((uint32_t)0x0800FBFFU)
 
 
 typedef enum{

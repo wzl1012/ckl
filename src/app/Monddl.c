@@ -154,7 +154,7 @@ static bool Cmd_send(uint8_t cmdcode)
 	//microseconds_delay(8);
    timer1_stop();
 	gpio_bit_set(GPIOA, MSDA);
-  delay_us(80);
+  delay_us(20);
   return TRUE;
 }
 /*static bool Moni_modset_SPDPU(void)
@@ -186,11 +186,12 @@ static bool Cmd_send(uint8_t cmdcode)
 static uint8_t Moni_int_PUmod(DEV_FTCODE fcode)
 {
 	  uint8_t  rspdbuff=0;
+		gpio_bit_set(GPIOC, POCTRL);
+    delay_us(20000);
     gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
 		gpio_init(GPIOA, GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, MSCL);
 	  gpio_bit_reset(GPIOA, MSDA);
-	  gpio_bit_set(GPIOC, POCTRL);
-    delay_us(3000);
+	  delay_us(200000);
 	  gpio_bit_reset(GPIOC, POCTRL);
 	  timer1_stop();
 	timer1_clear_ov();
@@ -203,14 +204,7 @@ static uint8_t Moni_int_PUmod(DEV_FTCODE fcode)
 	      timer1_clear_ov();
 				return FALSE;
 		  }
-		}
-		if(fcode==GC_DEV){
-	  delay_us(120);
-		//if(fcode==NXP_DEV){
-		//  delay_us(500);		
-		//}
-	    gpio_bit_set(GPIOA, MSDA);
-	  }		
+		}	
 		timer1_stop();
 	  timer1_clear_ov();
 	  //TCNT1 =60000;				// ptime is 2ms
@@ -227,10 +221,8 @@ static uint8_t Moni_int_PUmod(DEV_FTCODE fcode)
 			gpio_bit_set(GPIOA, MSDA);
 		   delay_us(200);
 		}
-		if(fcode==GC_DEV){
-		gpio_bit_reset(GPIOA, MSDA);
-		}
 		 timer1_stop();
+		timer1_clear_ov();
 	  rspdata_read(DEFAULTCMD,&rspdbuff,8);
 	  if(rspdbuff==entmonit_mode_rsp)
 		{
@@ -246,9 +238,11 @@ static uint8_t Moni_int_modset_PU(DEV_FTCODE fcode)
 	  uint8_t  rspdbuff=0,t=2;
 	  uint8_t  result=TRUE;
 while(t--){
+	  gpio_bit_set(GPIOC, POCTRL);
+	  delay_us(20);
     gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
 	if(fcode==NXP_DEV/*&&&Rom_partmp.devtype==PCF7952*/){
-		 if(Rom_partmp.devtype==PCF7952||Rom_partmp.devtype==PCF7953||Rom_partmp.devtype==PCF7941)
+		 if(Rom_partmp.devtype==PCF7952||Rom_partmp.devtype==PCF7945||Rom_partmp.devtype==PCF7953||Rom_partmp.devtype==PCF7941)
 		   gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, MSCL);
 		 if(Rom_partmp.devtype==PCF7922){
 			 gpio_init(GPIOA,GPIO_MODE_IPD, GPIO_OSPEED_50MHZ, MSCL);
@@ -259,11 +253,10 @@ while(t--){
 	  gpio_bit_reset(GPIOA, MSCL);
 	 }
 	  gpio_bit_reset(GPIOA, MSDA);
-	  gpio_bit_set(GPIOC, POCTRL);
 	  result=TRUE;
-	 if(fcode==NXP_DEV/*&&Rom_partmp.devtype==PCF7952*/)
+	 if(fcode==NXP_DEV&&(Rom_partmp.devtype!=PCF7945&&Rom_partmp.devtype!=PCF7953))
 		 delay_us(270000);
-		 else
+		 else if(fcode==GC_DEV||(fcode==NXP_DEV&&(Rom_partmp.devtype==PCF7945||Rom_partmp.devtype==PCF7953)))
     delay_us(3000);
  	  //gpio_bit_reset(GPIOA, MSDA);
 	  gpio_bit_reset(GPIOC, POCTRL);
@@ -287,11 +280,12 @@ while(t--){
 		//if(Rom_partmp.devtype!=PCF7952){
 		if(fcode==GC_DEV){
 	  delay_us(120);
-		//if(fcode==NXP_DEV){
-		//  delay_us(500);		
-		//}
-	    gpio_bit_set(GPIOA, MSDA);
-	  }		
+		}else
+		if(fcode==NXP_DEV&&(Rom_partmp.devtype==PCF7945||Rom_partmp.devtype==PCF7953)){
+		  delay_us(500);
+     gpio_bit_set(GPIOA, MSDA);			
+		 }
+	  //}		
 		//debug_printf("\r\nt1cntv=%04x\r\n",TCNT_V);
 		timer1_stop();
 	  timer1_clear_ov();
@@ -307,11 +301,11 @@ while(t--){
 		  }
 		}
 		if(result==FALSE)continue;
-		if(fcode==NXP_DEV){
+		if(fcode==NXP_DEV&&(Rom_partmp.devtype!=PCF7945&&Rom_partmp.devtype!=PCF7953)){
 			gpio_bit_set(GPIOA, MSDA);
 		   delay_us(200);
 		}
-		if(fcode==GC_DEV){
+		if(fcode==GC_DEV||(fcode==NXP_DEV&&(Rom_partmp.devtype==PCF7945&&Rom_partmp.devtype==PCF7953))){
 		gpio_bit_reset(GPIOA, MSDA);
 		}
 		 timer1_stop();
@@ -594,11 +588,11 @@ static bool nxpopr(C_CODE_ENUM cmd)
      if(cmd==c_ee_dump){		
 			if(Cmd_send(c_trace)!=TRUE)
 		return FALSE;
-			 if(Rom_partmp.devtype==PCF7922){
+			// if(Rom_partmp.devtype==PCF7922){
    if(rdwddis()!=TRUE){
 		  return FALSE;
    }
- }
+ //}
     rspdata_read(DEFAULTCMD,&rspd,8);
 		 if(rspd!=0)
 	   return FALSE;
@@ -614,12 +608,12 @@ static bool nxpopr(C_CODE_ENUM cmd)
 		}
 		return TRUE;
 }
-bool ROM_PRO(uint16_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t wpsize,uint16_t wsize)
+bool ROM_PRO(uint16_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t wpsize,uint16_t wsize,uint8_t pn)
 {
 	uint16_t tpgsize=0;
 	uint8_t  rspd=0;
 	uint8_t* tmpadrcnt=wbuff;
-	static uint8_t bcnt=0;
+	//static uint8_t bcnt=0;
 	if(wsize%wpsize){
 		tpgsize=wsize/wpsize+1;
 	}else{
@@ -643,11 +637,11 @@ if(cmd==c_wr_erom||cmd==c_wr_erom64){
 #endif		
  if(Cmd_send(c_trace)!=TRUE)
 	  return FALSE;
- if(Rom_partmp.devtype==PCF7922){
+// if(Rom_partmp.devtype==PCF7922||Rom_partmp.devtype==PCF7941){
    if(rdwddis()!=TRUE){
 		  return FALSE;
    }
- }
+ //}
   if(rspdata_read(cmd,&rspd,8)!=TRUE)
 		  return FALSE;
  if(rspd!=0)
@@ -662,11 +656,11 @@ if(cmd==c_wr_erom||cmd==c_wr_erom64){
        //	return FALSE;	
 }
 if(cmd==c_wr_eeprom){
-  bcnt++;
-	if(bcnt==1){
+  //bcnt++;
+	if(pn==0){
 		pgaddr=SPGADR1;
 		tpgsize=EEROM_BKSIZE/wpsize-3;
-	}else if(bcnt>1){
+	}else if(pn>0){
 		//pgaddr=pgaddr+(bcnt-1)*EEROM_BKSIZE/wpsize;
     tpgsize=pgaddr+tpgsize;
          //tmpgadr=pgaddr;
@@ -683,7 +677,7 @@ if(cmd==c_wr_eeprom){
 			return FALSE;
 		}
 	}
- if(bcnt==1&&cmd==c_wr_eeprom){
+ if(pn==0&&cmd==c_wr_eeprom){
 	   //cmd=c__prog_config;
 	    //bcnt=0;
 	    pgaddr=127;
@@ -1624,6 +1618,7 @@ bool Rom_parameter_cofg(DEV_FTCODE fcode,NXP_DEVTPE_ENUM devtype,uint32_t ERdlfl
          Rom_partmp.EEROMsize=PCF7945_EE_ROM_SZ;			
         }		  
 		  break;
+		case(PCF7941):
 	  case(PCF7952):{
 		  	 Rom_partmp.Epgsize=GEROM_PGSIZE;
          Rom_partmp.EEpgsize=GEEROM_PGSIZE;
@@ -1842,8 +1837,8 @@ bool Rom_Prgram_OP(DEV_PRGCMD cmd)
 				 crtyfls=(uint8_t*)BIN_EFL_START_ADDR;
 				 crtyflsed=(uint8_t*)(BIN_CRTY_MDFLSADR);
 				 }
-	  if((Rom_partmp.fctcode==NXP_DEV&&((Rom_partmp.devtype==PCF7922&&ROM_PRO(EPRADR,c_wr_erom64,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize)!=TRUE)
-			||(Rom_partmp.devtype!=PCF7922&&ROM_PRO(EPRADR,c_wr_erom,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize)!=TRUE)))||
+	  if((Rom_partmp.fctcode==NXP_DEV&&((Rom_partmp.devtype==PCF7922&&ROM_PRO(EPRADR,c_wr_erom64,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize,0)!=TRUE)
+			||(Rom_partmp.devtype!=PCF7922&&ROM_PRO(EPRADR,c_wr_erom,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize,0)!=TRUE)))||
 			(Rom_partmp.fctcode==GC_DEV&&GCROM_PRO(EPRADR,g_wr_erom,Rom_partmp.EProbuff,Rom_partmp.Epgsize,Rom_partmp.EROMsize)!=TRUE)){
 			debug_printf("\r\nEROM burn fail!\r\n");
 				//free(Rom_partmp.EProbuff);
@@ -1880,7 +1875,7 @@ bool Rom_Prgram_OP(DEV_PRGCMD cmd)
 				 if(tmppsz/EEROM_BKSIZE){
 					 tmppsz=EEROM_BKSIZE;
 				 }
-		   if((Rom_partmp.fctcode==NXP_DEV&&ROM_PRO(pgaddr,c_wr_eeprom,Rom_partmp.EEProbuff,Rom_partmp.EEpgsize,tmppsz)!=TRUE)||
+		   if((Rom_partmp.fctcode==NXP_DEV&&ROM_PRO(pgaddr,c_wr_eeprom,Rom_partmp.EEProbuff,Rom_partmp.EEpgsize,tmppsz,i)!=TRUE)||
 			      (Rom_partmp.fctcode==GC_DEV&&GCROM_PRO(pgaddr,g_wr_eeprom,Rom_partmp.EEProbuff,Rom_partmp.EEpgsize,tmppsz)!=TRUE) ){
 					   debug_printf("\r\nEEROM burn fail!\r\n");
             return FALSE;			
@@ -1919,10 +1914,12 @@ bool Rom_Prgram_OP(DEV_PRGCMD cmd)
 					}else{
 						debug_printf("\r\ncrypt ok!\r\n");
 					}
+					
 					//if(Moni_modset_SPDPU()!=TRUE){
 			//debug_printf("\r\nEnter downld mode fail!\r\n");	
 			//return FALSE;
 		//}
+				 gpio_bit_set(GPIOC, POCTRL);	
 			  if(Rom_partmp.fctcode==NXP_DEV){
 					 uint8_t ER_BYTE[3]={0x38,0x27,0x4e};
 		       delay_us(20);
@@ -1973,7 +1970,11 @@ static bool fls_pro_op(uint32_t flssz,uint8_t* flsadr)
 }
 static void de_gpio_init(void)
 {
-	gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, MSDA);
+	gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA|MSCL);
+	gpio_bit_reset(GPIOA, MSCL);
+	gpio_bit_reset(GPIOA, MSDA);
+	delay_us(1000);
+	gpio_init(GPIOA, GPIO_MODE_IN_FLOATING, GPIO_OSPEED_50MHZ, MSDA|MSCL);
 	//rcu_periph_clock_disable(RCU_GPIOA);
 }
 static void de_spi_init(void)
@@ -2003,7 +2004,6 @@ bool Program(void)
 	if(Rom_partmp.devtype!=OTHERDEV){
 	result=Rom_Prgram_OP(EPRGM_CMD);
 		gpio_bit_set(GPIOC, POCTRL);
-		delay_us(1000);
 		de_gpio_init( );
 	}else{
 		 //gpio_bit_reset(GPIOC, POCTRL);
@@ -2071,10 +2071,10 @@ static bool GCEEROMID_RD(C_CODE_ENUM cmd,uint16_t bytes,uint8_t* p)
 							  // *p=rspd;
 					   }else if(tmpEERsz==PCF7952_EE_ROM_SZ){
 							  if(Rom_partmp.devtype==PCF7922){
-									if((bytes==(tmpEERsz-511)&&rspd!=ID4))
+									if((bytes==(tmpEERsz-512)&&rspd!=ID4))
 					          return FALSE;
 								}else{
-							   if((bytes==(tmpEERsz-511)&&rspd!=ID3))
+							   if((bytes==(tmpEERsz-512)&&rspd!=ID3))
 					          return FALSE;
 							 }
 						    //if(bytes==(tmpEERsz-507))
@@ -2091,9 +2091,10 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 	              uint8_t  result=0;
     if(devtype==PCF7945||devtype==PCF7953)
          eeromsz=PCF7945_EE_ROM_SZ;			
-    else if(devtype==PCF7952||devtype==PCF7922){
+    else if(devtype==PCF7952||devtype==PCF7941||devtype==PCF7922){
          eeromsz=PCF7952_EE_ROM_SZ;	
 	     }
+		 Rom_partmp.devtype=devtype;
 		       if(devcd==GC_DEV){
 		  			      if((result=ROM_ER(devtype,g_er_erom))==FALSE){
 								debug_printf("\r\nbgErase fail!\r\n");									
@@ -2118,8 +2119,7 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 								}
 						 }
 					 if(devcd==NXP_DEV){
-						 if(devtype==PCF7922)
-							   Rom_partmp.devtype=PCF7922;
+						 //if(devtype==PCF7922)
 		  			      if((result=ROM_ER(devtype,c_er_erom))==FALSE){
 								debug_printf("\r\nbcErase fail!\r\n");
 							  return FALSE;
@@ -2137,6 +2137,10 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 										   *rddtype=0; 
 									 }										 
 								}*/
+		     gpio_bit_set(GPIOC, POCTRL);
+         delay_us(120000);
+         gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
+	       gpio_bit_reset(GPIOA, MSDA);
 						 }									
 	     return TRUE;
 }
@@ -2148,6 +2152,11 @@ bool kfw_pkgszchk(NXP_DEVTPE_ENUM devtype,uint16_t fmpkgsz)
 		 }
 	 }else if(devtype==PCF7952){
 		 if(fmpkgsz!=0x1214){
+			 return FALSE;
+		 }
+	 }		 
+   else if(devtype==PCF7941){
+		 if(fmpkgsz!=0x1814){
 			 return FALSE;
 		 } 		 
 	 }else if(devtype==OTHERDEV){

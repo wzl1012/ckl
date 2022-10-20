@@ -92,7 +92,7 @@ void  EEROM_4Write(uint8_t pgaddr,uint8_t *wbuff,uint8_t wsize);
 static bool Cmd_send(uint8_t cmdcode);
 static bool GCdata_send(uint8_t data);
 bool rspdata_read(C_CODE_ENUM cmd,uint8_t* dbuff,uint8_t bits);
-bool ROM_PRO(uint16_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t wpsize,uint16_t wsize);
+bool ROM_PRO(uint16_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t wpsize,uint16_t wsize,uint8_t pn);
 bool GCROM_PRO(uint16_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t wpsize,uint16_t wsize);
 bool GCROM_LBPRO(uint16_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t wpsize,uint16_t wsize);
 //bool ROM_ER(C_CODE_ENUM cmd);
