@@ -281,7 +281,7 @@ while(t--){
 		if(fcode==GC_DEV){
 	  delay_us(120);
 		}else
-		if(fcode==NXP_DEV&&(Rom_partmp.devtype==PCF7945||Rom_partmp.devtype==PCF7953)){
+		if(fcode==NXP_DEV&&(Rom_partmp.devtype==PCF7945||Rom_partmp.devtype==PCF7953||Rom_partmp.devtype==PCF7952)){
 		  delay_us(500);
      gpio_bit_set(GPIOA, MSDA);			
 		 }
@@ -301,11 +301,10 @@ while(t--){
 		  }
 		}
 		if(result==FALSE)continue;
-		if(fcode==NXP_DEV&&(Rom_partmp.devtype!=PCF7945&&Rom_partmp.devtype!=PCF7953)){
+		if(fcode==NXP_DEV&&(Rom_partmp.devtype!=PCF7945&&Rom_partmp.devtype!=PCF7953&&Rom_partmp.devtype!=PCF7952)){
 			gpio_bit_set(GPIOA, MSDA);
 		   delay_us(200);
-		}
-		if(fcode==GC_DEV||(fcode==NXP_DEV&&(Rom_partmp.devtype==PCF7945&&Rom_partmp.devtype==PCF7953))){
+		}else if(fcode==GC_DEV||(fcode==NXP_DEV&&(Rom_partmp.devtype==PCF7945||Rom_partmp.devtype==PCF7953||Rom_partmp.devtype==PCF7952))){
 		gpio_bit_reset(GPIOA, MSDA);
 		}
 		 timer1_stop();
@@ -507,11 +506,30 @@ static bool EROM_32Write(uint8_t pgaddr,C_CODE_ENUM cmd,uint8_t *wbuff,uint8_t w
 	 if(Cmd_send(pgaddr)!=TRUE)
 		return FALSE;
 	}
-	if((cmd==g_wr_eeprom||cmd==c_wr_eeprom)&&pgaddr==(*(Rom_partmp.EEProbuff+511)>>2)){
+	if((cmd==g_wr_eeprom||cmd==c_wr_eeprom)&&pgaddr==*(Rom_partmp.EEProbuff+511)){
 		//uint32_t tmpdata1=0;
 		//tmpdata1=*(uint32_t*)wbuff;
 		//tmpdata1=((*(uint32_t*)KBSNFLSADR)<<8)+tmpdata1;
 		//tmpdata1=chbtsx(tmpdata1);
+		switch(Rom_partmp.devtype){
+			case(PCF7945):
+			randv=((randv&0x0FFFFFFF)|((uint32_t)9<<28));
+			break;
+			case(PCF7952):
+			randv=((randv&0x0FFFFFFF)|(7<<28));
+			break;
+			case(PCF7953):
+			randv=((randv&0x0FFFFFFF)|(3<<28));
+			break;
+			case(PCF7941):
+			randv=((randv&0x0FFFFFFF)|(6<<28));
+			break;
+			case(PCF7922):
+			randv=((randv&0x0FFFFFFF)|((uint32_t)8<<28));
+			break;
+			default:
+      break;
+		}			
 		wbuff=(uint8_t*)(&randv);
 	}
 	while(wsize--){
@@ -1509,8 +1527,11 @@ static bool  NXPWP(void)
 	uint8_t rspd=0;
 	if(Cmd_send(c_protect)!=TRUE)
 		return FALSE;
-	rspdata_read(c_protect,&rspd,8);
-	if(rspd==0xff)
+	if(!rspdata_read(c_protect,&rspd,8))
+		      return FALSE;
+	//if(rspd==0xff)
+		//return FALSE;
+	 if(rspd&RRDRSP)
 		return FALSE;
 	return TRUE;	
 }
@@ -2089,6 +2110,7 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 	             uint8_t tmdevtype=0;
 	              uint16_t eeromsz=0;
 	              uint8_t  result=0;
+	  // user_kdl_init();
     if(devtype==PCF7945||devtype==PCF7953)
          eeromsz=PCF7945_EE_ROM_SZ;			
     else if(devtype==PCF7952||devtype==PCF7941||devtype==PCF7922){
@@ -2098,14 +2120,14 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 		       if(devcd==GC_DEV){
 		  			      if((result=ROM_ER(devtype,g_er_erom))==FALSE){
 								debug_printf("\r\nbgErase fail!\r\n");									
-							  return FALSE;
-						   }else{
+							  //return result;
+						   }/*else{
 								 if(result==2)
-									 return 2;									
-							 }
-						if(GCEEROMID_RD(g_EEROMBR,eeromsz,&tmdevtype)!=TRUE){
+									 return result;									
+							 }*/
+						if(result==TRUE&&GCEEROMID_RD(g_EEROMBR,eeromsz,&tmdevtype)!=TRUE){
 									 debug_printf("\r\ndev error!\r\n");
-							     return FALSE;
+							     result=FALSE;
 								}else{
                    if((tmdevtype&0xf0)==0x60){
 										   *rddtype=PCF7953; 
@@ -2122,14 +2144,14 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 						 //if(devtype==PCF7922)
 		  			      if((result=ROM_ER(devtype,c_er_erom))==FALSE){
 								debug_printf("\r\nbcErase fail!\r\n");
-							  return FALSE;
-						   }else{
+							  //return FALSE;
+						   }/*else{
 								 if(result==2)
 									 return 2;									
-							 }
-						if(GCEEROMID_RD(c_ee_dump,eeromsz,&tmdevtype)!=TRUE){
+							 }*/
+						if(result==TRUE&&GCEEROMID_RD(c_ee_dump,eeromsz,&tmdevtype)!=TRUE){
 									 debug_printf("\r\ndev error!\r\n");
-							     return FALSE;
+							     result=FALSE;
 								}/*else{
              if((tmdevtype&0xf0)==0x90){
 										   *rddtype=PCF7953; 
@@ -2137,12 +2159,13 @@ uint8_t key_id(DEV_FTCODE devcd,NXP_DEVTPE_ENUM devtype,uint8_t* rddtype)
 										   *rddtype=0; 
 									 }										 
 								}*/
+							}
 		     gpio_bit_set(GPIOC, POCTRL);
          delay_us(120000);
          gpio_init(GPIOA, GPIO_MODE_OUT_PP, GPIO_OSPEED_50MHZ, MSDA);
 	       gpio_bit_reset(GPIOA, MSDA);
-						 }									
-	     return TRUE;
+						 									
+	     return result;
 }
 bool kfw_pkgszchk(NXP_DEVTPE_ENUM devtype,uint16_t fmpkgsz)
 {
@@ -2150,12 +2173,12 @@ bool kfw_pkgszchk(NXP_DEVTPE_ENUM devtype,uint16_t fmpkgsz)
 		 if(fmpkgsz!=0x2414){
 			 return FALSE;
 		 }
-	 }else if(devtype==PCF7952){
+	 }/*else if(devtype==PCF7952){
 		 if(fmpkgsz!=0x1214){
 			 return FALSE;
 		 }
-	 }		 
-   else if(devtype==PCF7941){
+	 }*/		 
+   else if(devtype==PCF7941||devtype==PCF7952){
 		 if(fmpkgsz!=0x1814){
 			 return FALSE;
 		 } 		 
